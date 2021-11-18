@@ -5,3 +5,4 @@ pandas_datareader
 matplotlib
 sklearn
 seaborn
+flask
