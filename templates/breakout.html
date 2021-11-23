@@ -1,0 +1,41 @@
+<html>
+<head>
+    <style>
+    </style>
+   
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+   <Script>
+
+    function loadBreakouts(){
+        $.ajax({
+        url:"/breakouts",
+        type: "POST",
+        dataType: "json",
+        success: function(data){
+            $(random_decimal)}
+       } );
+    }
+
+   </Script>
+</head>
+<body>
+    <h1>Technical Scanner</h1>
+    
+    <table>
+        <tr>
+            <th  colspan="3">Ticker</th>
+            <th  colspan="3">Status</th>
+            <th  colspan="3">ChartPeek</th>
+        </tr>
+        {% for key,value in breakoutdict.items() %}
+
+        <tr>
+            <td colspan="3">{{key}}</td>
+            <td colspan="3">{{value['status']}}</td>
+            <td colspan="3"><img src="https://finviz.com/chart.ashx?t={{key}}&ty=c&ta=1&p=d&s=l" /></td>
+        </tr>
+    {% endfor %}
+    </table>
+
+</body>
+</html>

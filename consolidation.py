@@ -24,6 +24,7 @@ now = dt.datetime.now()
 
 lol_stocks = []
 
+# return consolidating stocks
 def ret_cons_stocks(ticker):
 
     data = pd.DataFrame(pdr.get_data_yahoo(ticker,start,now)['Close'])
@@ -102,6 +103,8 @@ try:
     shortlistdf.sort_values(by=['PriceDiff'], inplace=True,ascending=False)
     shortlistdf.to_csv('shortlist.csv')
 except:
-    print ('NOthing to write to file')
+    print ('Nothing to write to file')
+
+
 
 
