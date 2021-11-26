@@ -4,7 +4,7 @@ import pandas as pd
 from azure.storage.blob import ContainerClient
 from io import StringIO
 import yfinance as yf
-from azure.cosmosdb.table.tableservice import TableService
+#from azure.cosmosdb.table.tableservice import TableService
 
 app = Flask(__name__)
 
