@@ -4,6 +4,7 @@ import pandas as pd
 from azure.storage.blob import ContainerClient
 from io import StringIO
 import yfinance as yf
+from azure.cosmosdb.table.tableservice import TableService
 
 app = Flask(__name__)
 
@@ -11,7 +12,9 @@ app = Flask(__name__)
 
 conn_str = 'DefaultEndpointsProtocol=https;AccountName=mkccsvs;AccountKey=N33wcyz+gndJj/laNFLy4mdG7yhE+5TTkuBD9DCCnXN5F4v/bAz71hrn2+UZNtvIsx1nkS2VPw8rJI/IZnfBmA==;EndpointSuffix=core.windows.net'
 container = 'shortlist'
-blob_name = 'shortlist.csv'
+
+blob_name1 = 'shortlist1.csv'
+blob_name2 = 'shortlist2.csv'
 
 container_client = ContainerClient.from_connection_string(
     conn_str=conn_str, 
@@ -58,13 +61,20 @@ def isbreakingout(candid,lastprice,breakrev):
 def index():
     
     # Download blob as StorageStreamDownloader object (stored in memory)
-    downloaded_blob = container_client.download_blob(blob_name)
+    downloaded_blob1 = container_client.download_blob(blob_name1)
+    downloaded_blob2 = container_client.download_blob(blob_name2)
 
     stocks = {}
     #shortlistdf = pd.read_csv(sasurl)
-    downloaded_blob = container_client.download_blob(blob_name)
-    df = pd.read_csv(StringIO(downloaded_blob.content_as_text()))
-    shortlistdf = pd.DataFrame(df)
+
+    df1 = pd.read_csv(StringIO(downloaded_blob1.content_as_text()))
+    df2 = pd.read_csv(StringIO(downloaded_blob2.content_as_text()))
+
+    shortlistdf1 = pd.DataFrame(df1)
+    shortlistdf2 = pd.DataFrame(df2)
+    print(shortlistdf2)
+
+    shortlistdf = pd.concat([shortlistdf1, shortlistdf2])
     shortlistdf.set_index('Stock', drop=True, inplace=True)
     shortlistdf = shortlistdf.drop(shortlistdf.columns[[0]], axis=1)  # df.columns is zero-based pd.Index
     
@@ -73,11 +83,11 @@ def index():
     records = shortlistdf.to_records(index=True)
     shortlist = list(records)
 
-    print(shortlist)
+    #print(shortlist)
 
     for item in shortlist:
         stocks[item[0]] = {'CurrentPrice':item[1],'PriceBeforeConsolidation':item[2],'PriceDiff':item[3],'Breakout_Reversal':item[4]}
-    print (stocks)
+    #print (stocks)
 
 
     return render_template('index.html',stocks=stocks)
@@ -104,13 +114,19 @@ def breakout():
 
     breakoutdict = {}
 
-    downloaded_blob = container_client.download_blob(blob_name)
+    downloaded_blob1 = container_client.download_blob(blob_name1)
+    downloaded_blob2 = container_client.download_blob(blob_name2)
 
     
     #shortlistdf = pd.read_csv(sasurl)
-    downloaded_blob = container_client.download_blob(blob_name)
-    df = pd.read_csv(StringIO(downloaded_blob.content_as_text()))
-    shortlistdf = pd.DataFrame(df)
+
+    df1 = pd.read_csv(StringIO(downloaded_blob1.content_as_text()))
+    df2 = pd.read_csv(StringIO(downloaded_blob2.content_as_text()))
+
+    shortlistdf1 = pd.DataFrame(df1)
+    shortlistdf2 = pd.DataFrame(df2)
+
+    shortlistdf = pd.concat([shortlistdf1,shortlistdf2])
 
     #print(shortlistdf)
 
