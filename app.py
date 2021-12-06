@@ -4,7 +4,9 @@ import pandas as pd
 from azure.storage.blob import ContainerClient
 from io import StringIO
 import yfinance as yf
-#from azure.cosmosdb.table.tableservice import TableService
+from azure.cosmosdb.table.tableservice import TableService
+from decimal import Decimal
+from collections import OrderedDict
 
 app = Flask(__name__)
 
@@ -16,12 +18,32 @@ container = 'shortlist'
 blob_name1 = 'shortlist1.csv'
 blob_name2 = 'shortlist2.csv'
 
+account_name = 'mkccsvs'
+account_Key = 'N33wcyz+gndJj/laNFLy4mdG7yhE+5TTkuBD9DCCnXN5F4v/bAz71hrn2+UZNtvIsx1nkS2VPw8rJI/IZnfBmA=='
+
+table_service = TableService(account_name=account_name, account_key=account_Key)
+
 container_client = ContainerClient.from_connection_string(
     conn_str=conn_str, 
     container_name=container
     )
 
 breakouts = []
+
+def isapproachinggap(ticker):
+
+    try:
+
+        fivemindata = round(yf.download(ticker, period='20m', interval='5m'),2)
+
+        current_price = fivemindata.tail(1)['Close'].item()
+
+    except:
+        pass
+    
+
+
+
 
 def isbreakingout(candid,lastprice,breakrev):
 
@@ -95,17 +117,45 @@ def index():
 # SAS URL for shortlisted consolidated stocks csv file shortlist.csv
 
 
-@app.route('/snapshot')
-def snapshot():
-    with open('shortlist.csv') as f:
-        stocks = f.read().splitlines()
-        print(stocks)
-        for ticker in stocks:
-            ticker = ticker.split(',')[1]
+@app.route('/putgap')
+def putgap():
 
-    return {
-        'code':'success'
-    }
+    gaps_dict = {}
+
+    gaps = table_service.query_entities(
+    'gapstocks1', filter="PartitionKey eq 'gapStocks'")
+    
+    gaps_list = list(gaps)
+
+    for gap in gaps_list:
+
+        ticker = gap.RowKey[:-1]
+        
+        try:
+            fivemindata = round(yf.download(ticker, period='20m', interval='5m'),2)
+
+            current_price = fivemindata.tail(1)['Close'].item()
+
+            current_price = round(Decimal(current_price),2)
+
+            gap_top = Decimal(gap.Gap_Top)
+
+            gap_bottom = Decimal(gap.Gap_Bottom)
+
+            # how far is current price from the gap top
+            dist_from_top = round(((current_price - gap_top) / current_price ) * 100 ,2)
+
+            gaps_dict[ticker] = {'gap_bottom':gap_bottom,'gap_top':gap_top,'current_price':current_price,'dist_from_top':dist_from_top}
+
+            gaps_dict = OrderedDict(sorted(gaps_dict.items(), key=lambda i: i[1]['dist_from_top']))
+     
+        except:
+            pass
+    print (gaps_dict)
+    
+
+
+    return render_template('putgap.html',gaps_dict=gaps_dict)
 
 
 
