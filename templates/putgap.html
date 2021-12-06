@@ -1,0 +1,37 @@
+<html>
+<head>
+    <style>
+        body { font-family: arial; margin: 20px; }
+        td { padding: 5px; }
+        .bullish { background: green; color: white; }
+        .bearish { background: red; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Technical Scanner</h1>
+  
+
+    <table>
+        <tr>
+            <td>Stock</td>
+            <td>gap_bottom Price</td>
+            <td>gap_top Price</td>
+            <td>current_price</td>
+            <td>dist_from_top</td>
+        </tr>
+
+        {% for key, value in gaps_dict.items() %}
+        <tr>
+            <td>{{key}} </td>
+            <td>{{value['gap_bottom']}} </td>
+            <td>{{value['gap_top']}} </td>
+            <td>{{value['current_price']}} </td>
+            <td>{{value['dist_from_top']}} </td>
+       
+        </tr>
+        {% endfor %}
+
+    </table>
+</body>
+</html>
+
