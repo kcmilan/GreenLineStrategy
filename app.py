@@ -135,11 +135,11 @@ def index():
 def putgap():
 
        # Download blob as StorageStreamDownloader object (stored in memory)
-    downloaded_blob1 = container_client_gap.download_blob(gap_blob1)
-    downloaded_blob2 = container_client_gap.download_blob(gap_blob2)
+    #downloaded_blob1 = container_client_gap.download_blob(gap_blob1)
+    #downloaded_blob2 = container_client_gap.download_blob(gap_blob2)
 
-    df1 = pd.read_csv(StringIO(downloaded_blob1.content_as_text()))
-    df2 = pd.read_csv(StringIO(downloaded_blob2.content_as_text()))
+    #df1 = pd.read_csv(StringIO(downloaded_blob1.content_as_text()))
+    #df2 = pd.read_csv(StringIO(downloaded_blob2.content_as_text()))
 
 
     blob_list = container_client_gap.list_blobs()
@@ -168,13 +168,13 @@ def putgap():
            
     print(main_dataframe)
 
-    gapdf1 = pd.DataFrame(df1)
-    gapdf2 = pd.DataFrame(df2)
+    #gapdf1 = pd.DataFrame(df1)
+    #gapdf2 = pd.DataFrame(df2)
 
-    gapdf = pd.concat([gapdf1, gapdf2])
+    #gapdf = pd.concat([gapdf1, gapdf2])
 
-    gapdf.set_index('Ticker', drop=True, inplace=True)
-    gapdf = gapdf.drop(gapdf.columns[[0]], axis=1)  # df.columns is zero-based pd.Index
+    #gapdf.set_index('Ticker', drop=True, inplace=True)
+    #gapdf = gapdf.drop(gapdf.columns[[0]], axis=1)  # df.columns is zero-based pd.Index
 
     gaps_dict = {}
 
