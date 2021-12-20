@@ -13,19 +13,33 @@ app = Flask(__name__)
 #sasurl = 'https://mkccsvs.blob.core.windows.net/shortlist/shortlist.csv?sp=r&st=2021-11-22T23:00:39Z&se=2024-11-23T07:00:39Z&spr=https&sv=2020-08-04&sr=b&sig=2aJhwcOrqbG0DVe0iArmgaBGCiUpPbSCl6d0%2ByUeVl0%3D'
 
 conn_str = 'DefaultEndpointsProtocol=https;AccountName=mkccsvs;AccountKey=N33wcyz+gndJj/laNFLy4mdG7yhE+5TTkuBD9DCCnXN5F4v/bAz71hrn2+UZNtvIsx1nkS2VPw8rJI/IZnfBmA==;EndpointSuffix=core.windows.net'
+
+#csv containers
 container = 'shortlist'
 
+gap_container = 'gapstocks'
+
+#blobs inside containers
 blob_name1 = 'shortlist1.csv'
 blob_name2 = 'shortlist2.csv'
+
+gap_blob1 = 'gaplist1.csv'
+gap_blob2 = 'gaplist2.csv'
 
 account_name = 'mkccsvs'
 account_Key = 'N33wcyz+gndJj/laNFLy4mdG7yhE+5TTkuBD9DCCnXN5F4v/bAz71hrn2+UZNtvIsx1nkS2VPw8rJI/IZnfBmA=='
 
 table_service = TableService(account_name=account_name, account_key=account_Key)
 
+#container clients
 container_client = ContainerClient.from_connection_string(
     conn_str=conn_str, 
     container_name=container
+    )
+
+container_client_gap = ContainerClient.from_connection_string(
+    conn_str=conn_str, 
+    container_name = gap_container
     )
 
 breakouts = []
@@ -94,7 +108,7 @@ def index():
 
     shortlistdf1 = pd.DataFrame(df1)
     shortlistdf2 = pd.DataFrame(df2)
-    print(shortlistdf2)
+    #print(shortlistdf2)
 
     shortlistdf = pd.concat([shortlistdf1, shortlistdf2])
     shortlistdf.set_index('Stock', drop=True, inplace=True)
@@ -120,16 +134,58 @@ def index():
 @app.route('/putgap')
 def putgap():
 
+       # Download blob as StorageStreamDownloader object (stored in memory)
+    downloaded_blob1 = container_client_gap.download_blob(gap_blob1)
+    downloaded_blob2 = container_client_gap.download_blob(gap_blob2)
+
+    df1 = pd.read_csv(StringIO(downloaded_blob1.content_as_text()))
+    df2 = pd.read_csv(StringIO(downloaded_blob2.content_as_text()))
+
+
+    blob_list = container_client_gap.list_blobs()
+
+    blobs_list =[]
+
+    for blob in blob_list:
+       
+        blobs_list.append(blob.name)
+   
+    main_dataframe = pd.DataFrame(pd.read_csv(StringIO((container_client_gap.download_blob(blobs_list[0])).content_as_text())))
+
+    main_dataframe.set_index('Ticker', drop=True, inplace=True)
+    main_dataframe = main_dataframe.drop(main_dataframe.columns[[0]], axis=1)
+
+    for i in range(1,len(blobs_list)):
+
+        dta = 'dta' + str(i)
+        dta  = pd.DataFrame(pd.read_csv(StringIO((container_client_gap.download_blob(blobs_list[i])).content_as_text())))
+
+        dta.set_index('Ticker', drop=True, inplace=True)
+        dta = dta.drop(dta.columns[[0]], axis=1)
+        main_dataframe = pd.concat([main_dataframe,dta])
+
+    main_dataframe.dropna().drop_duplicates()
+           
+    print(main_dataframe)
+
+    gapdf1 = pd.DataFrame(df1)
+    gapdf2 = pd.DataFrame(df2)
+
+    gapdf = pd.concat([gapdf1, gapdf2])
+
+    gapdf.set_index('Ticker', drop=True, inplace=True)
+    gapdf = gapdf.drop(gapdf.columns[[0]], axis=1)  # df.columns is zero-based pd.Index
+
     gaps_dict = {}
 
-    gaps = table_service.query_entities(
-    'gapstocks1', filter="PartitionKey eq 'gapStocks'")
-    
-    gaps_list = list(gaps)
+    records = main_dataframe.to_records(index = True)
+    gaplist = list(records)
 
-    for gap in gaps_list:
+    #print(gaps_list)
 
-        ticker = gap.RowKey[:-1]
+    for gap in gaplist:
+
+        ticker = gap[0][:-1]
         
         try:
             fivemindata = round(yf.download(ticker, period='20m', interval='5m'),2)
@@ -138,9 +194,9 @@ def putgap():
 
             current_price = round(Decimal(current_price),2)
 
-            gap_top = Decimal(gap.Gap_Top)
+            gap_top = round(Decimal(gap[2]),2)
 
-            gap_bottom = Decimal(gap.Gap_Bottom)
+            gap_bottom = round(Decimal(gap[3]),2)
 
             # how far is current price from the gap top
             dist_from_top = round(((current_price - gap_top) / current_price ) * 100 ,2)
@@ -151,13 +207,8 @@ def putgap():
      
         except:
             pass
-    print (gaps_dict)
-    
-
 
     return render_template('putgap.html',gaps_dict=gaps_dict)
-
-
 
 @app.route('/breakout')
 def breakout():
